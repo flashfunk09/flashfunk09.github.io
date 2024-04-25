@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conway's Life Game</title>
+  </head>
+  <body>
+    <div>
+      <canvas id="gameCanvas" class="crosshair-pointer"></canvas>
+      <p id="entropy">熵</p>
+    </div>
+    <div>
+      <div id="titleDiv">
+        <div id="intro">
+          <p>Conway‘s Life Game</p>
+          <p>康威-生命游戏</p>
+        </div>
+        <p id="author">@red5pin</p>
+      </div>
+      <div id="hintDiv">
+        <p class="hint">鼠标左键点击👉改变单个网格状态</p>
+        <p class="hint">鼠标左键长按划过👉改变轨迹上的网格状态</p>
+      </div>
+      <div id="belowHint">
+        <div id="selectBox">
+          <label for="gridSize">选择网格尺寸：</label>
+          <select id="gridSize" name="values">
+            <option value="200">4×4</option>
+            <option value="100">8×8</option>
+            <option value="50">16×16</option>
+            <option value="20" selected>40×40</option>
+            <option value="10">80×80</option>
+          </select>
+        </div>
+        <div id="autoGenDiv">
+          <label>
+            <input type="checkbox" id="autoUpdateCheckbox" checked />
+            自动演化
+          </label>
+        </div>
+        <div id="updateTimeDiv">
+          <label>
+            演化更新间隔时间（毫秒）：
+            <input type="number" id="updateIntervalInput" value="10" />
+          </label>
+        </div>
+        <div id="ButtonsDiv">
+          <button id="nextStepButton" class="disabled">下一步</button>
+          <button id="randomInitButton">随机填充网格</button>
+          <button id="clearButton">清空网格</button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+      }
+
+      .crosshair-pointer {
+        cursor: crosshair;
+      }
+
+      #gameCanvas {
+        border: 10px solid #858585;
+        margin-bottom: 20px;
+        border-radius: 20px;
+      }
+
+      div {
+        text-align: center;
+        margin: 25px;
+      }
+
+      button {
+        height: 50px;
+        width: 100px;
+        padding: 5px 10px;
+        margin-right: 15px;
+        border: 1px solid #ccc;
+        border-radius: 10px;
+      }
+
+      input[type="number"] {
+        padding: 5px 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .disabled {
+        background-color: #cccccc;
+        color: #666666;
+        cursor: not-allowed;
+      }
+
+      input[type="checkbox"] {
+        transform: scale(2);
+        margin: 10px;
+        cursor: pointer;
+      }
+
+      #nextStepButton:not(.disabled) {
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+      }
+
+      #nextStepButton:hover:not(.disabled) {
+        background-color: #0056b3;
+      }
+
+      #randomInitButton:not(.disabled) {
+        cursor: pointer;
+        background-color: #0a9b2e;
+        color: white;
+        border: none;
+      }
+
+      #randomInitButton:hover:not(.disabled) {
+        background-color: #0b5715;
+      }
+
+      #clearButton:not(.disabled) {
+        cursor: pointer;
+        background-color: #990e1a;
+        color: white;
+        border: none;
+      }
+
+      #clearButton:hover:not(.disabled) {
+        background-color: #52090f;
+      }
+
+      #autoGenDiv {
+        border: 1px solid #000000;
+        border-radius: 4px;
+        width: auto;
+        height: auto;
+        padding: 10px;
+      }
+      #updateTimeDiv {
+        border: 1px solid #000000;
+        border-radius: 4px;
+        width: auto;
+        height: auto;
+        padding: 10px;
+      }
+
+      #hintDiv {
+        background-color: #343e75;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      .hint {
+        font-size: 1.5em;
+        color: #ffffff;
+        font-weight: bolder;
+        font-family: "Arial", sans-serif;
+      }
+
+      #intro {
+        font-size: 2em;
+        text-align: center;
+        font-family: "consolas", sans-serif;
+        font-weight: bolder;
+        letter-spacing: 5px;
+      }
+
+      #author {
+        margin-top: 0px;
+        font-size: 1.5em;
+        font-style: italic;
+        font-weight: bolder;
+        color: #000000;
+      }
+
+      #titleDiv {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 5px;
+        margin: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        text-align: center;
+      }
+
+      #belowHint {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 20px;
+        padding: 5px;
+        margin: 5px;
+        text-align: center;
+      }
+
+      #entropy {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: lighter;
+        border-radius: 10px;
+        width: 200px;
+        height: 20px;
+        margin-top: 0px;
+        background-color: #ffffff;
+      }
+
+      /* select box */
+      select {
+        padding: 8px 12px;
+        font-size: 16px;
+        border: 1px solid #b1b1b1;
+        border-radius: 5px;
+        background-color: #f7f7f7;
+        color: #333;
+        appearance: none;
+      }
+
+      select:focus {
+        border-color: #4caf50;
+        outline: none;
+      }
+
+      select::-ms-expand {
+        display: none;
+      }
+
+      select:before {
+        content: "\25BC";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+      #selectBox {
+        margin-top: 0;
+        border: 1px solid #000000;
+        border-radius: 4px;
+        width: auto;
+        height: auto;
+        padding: 10px;
+      }
+    </style>
+
+    <script>
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const canvasSize = 800;
+      let resolution = 20;
+      let cols = canvasSize / resolution;
+      let rows = canvasSize / resolution;
+      const updateIntervalInput = document.getElementById(
+        "updateIntervalInput"
+      );
+      const autoUpdateCheckbox = document.getElementById("autoUpdateCheckbox");
+      const nextStepButton = document.getElementById("nextStepButton");
+      const randomInitButton = document.getElementById("randomInitButton");
+      const clearButton = document.getElementById("clearButton");
+      const gridSizeSelect = document.getElementById("gridSize");
+      let entropyVal = document.getElementById("entropy");
+      let updateInterval = parseInt(updateIntervalInput.value);
+      let lastUpdateTime = performance.now();
+      let mouseIsPressed = false;
+      let autoUpdate = true;
+
+      let grid = buildGrid();
+
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+
+      gridSizeSelect.addEventListener("change", function () {
+        let selectedValue = gridSizeSelect.value;
+        console.log(selectedValue);
+        resolution = selectedValue;
+        cols = canvasSize / resolution;
+        rows = canvasSize / resolution;
+        grid = buildGrid();
+      });
+
+      autoUpdateCheckbox.addEventListener("change", function () {
+        autoUpdate = this.checked;
+        if (autoUpdate) {
+          requestAnimationFrame(update);
+        }
+        nextStepButton.classList.toggle("disabled");
+      });
+
+      nextStepButton.addEventListener("click", function () {
+        if (!autoUpdate) {
+          manualUpdate();
+        }
+      });
+
+      randomInitButton.addEventListener("click", function () {
+        grid = buildGrid();
+        console.log(grid.flat());
+        render(grid);
+        updateEntropy(grid);
+      });
+
+      clearButton.addEventListener("click", function () {
+        grid = clearGrid();
+        console.log(grid.flat());
+        render(grid);
+        updateEntropy(grid);
+      });
+
+      updateIntervalInput.addEventListener("change", function () {
+        updateInterval = parseInt(this.value);
+      });
+
+      canvas.addEventListener("mousedown", function (event) {
+        mouseIsPressed = true;
+        toggleCellState(event);
+      });
+
+      canvas.addEventListener("mouseup", function () {
+        mouseIsPressed = false;
+      });
+
+      canvas.addEventListener("mousemove", function (event) {
+        if (mouseIsPressed) {
+          toggleCellState(event);
+        }
+      });
+
+      function manualUpdate() {
+        grid = nextGen(grid);
+        render(grid);
+        updateEntropy(grid);
+      }
+
+      function update(timestamp) {
+        if (autoUpdate) {
+          if (timestamp - lastUpdateTime > updateInterval) {
+            grid = nextGen(grid);
+            render(grid);
+            lastUpdateTime = timestamp;
+          }
+          requestAnimationFrame(update);
+          updateEntropy(grid);
+        }
+      }
+
+      function buildGrid() {
+        return new Array(rows)
+          .fill(null)
+          .map(() =>
+            new Array(cols).fill(null).map(() => Math.floor(Math.random() * 2))
+          );
+      }
+
+      function clearGrid() {
+        return new Array(rows)
+          .fill(null)
+          .map(() => new Array(cols).fill(null).map(() => 0));
+      }
+
+      function nextGen(grid) {
+        const nextGrid = grid.map((arr) => [...arr]);
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const cell = grid[row][col];
+            let numNeighbors = 0;
+            for (let i = -1; i <= 1; i++) {
+              for (let j = -1; j <= 1; j++) {
+                if (i === 0 && j === 0) continue;
+                const x = col + j;
+                const y = row + i;
+                if (x >= 0 && x < cols && y >= 0 && y < rows) {
+                  numNeighbors += grid[y][x];
+                }
+              }
+            }
+
+            if (cell === 1 && (numNeighbors < 2 || numNeighbors > 3)) {
+              nextGrid[row][col] = 0;
+            } else if (cell === 0 && numNeighbors === 3) {
+              nextGrid[row][col] = 1;
+            }
+          }
+        }
+
+        return nextGrid;
+      }
+
+      function render(grid) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const cell = grid[row][col];
+            ctx.beginPath();
+            ctx.rect(
+              col * resolution,
+              row * resolution,
+              resolution,
+              resolution
+            );
+            ctx.fillStyle = cell ? "black" : "white";
+            ctx.fill();
+            ctx.stroke();
+          }
+        }
+      }
+
+      function toggleCellState(event) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const col = Math.floor(mouseX / resolution);
+        const row = Math.floor(mouseY / resolution);
+
+        if (row >= 0 && row < rows && col >= 0 && col < cols) {
+          grid[row][col] = 1 - grid[row][col];
+          render(grid);
+        }
+      }
+
+      function calculateEntropy(array) {
+        let count0 = 0;
+        let count1 = 0;
+
+        array.forEach((value) => {
+          if (value === 0) count0++;
+          else if (value === 1) count1++;
+        });
+
+        let p0 = count0 / array.length;
+        let p1 = count1 / array.length;
+
+        let entropy = 0;
+        if (p0 > 0) entropy -= p0 * Math.log2(p0);
+        if (p1 > 0) entropy -= p1 * Math.log2(p1);
+
+        return entropy;
+      }
+
+      function updateEntropy(grid) {
+        let val = calculateEntropy(grid.flat());
+        entropyVal.innerText = `熵：${val.toFixed(10)}`;
+        let hue = (1 - val) * 120;
+        let color = `hsla(${hue},100%, 50%, 0.8)`;
+        entropyVal.style.backgroundColor = color;
+      }
+
+      if (autoUpdate) {
+        requestAnimationFrame(update);
+      }
+    </script>
+  </body>
+</html>
